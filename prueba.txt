@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto Final</title>
+    <style>
+        body {
+            font-family: Times new roman, Times new roman;
+            background-color: #f0f8ff; /* Celeste claro */
+            margin: 0;
+            padding: 0;
+        }
+
+        header, footer {
+            background-color: #8a2be2; /* Violeta */
+            color: white;
+            text-align: center;
+            padding: 1em 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            flex: 1;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="date"],
+        .form-group input[type="file"] {
+            flex: 2;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .form-group input[type="button"], .form-group input[type="submit"] {
+            background-color: #8a2be2; /* Violeta */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .form-group input[type="button"]:hover, .form-group input[type="submit"]:hover {
+            background-color: #6a1bbd; /* Violeta más oscuro */
+        }
+
+        .error {
+            color: red;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f0f8ff; /* Celeste claro */
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.8/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Proyecto Final</h1>
+    </header>
+
+    <div class="container">
+        <form id="dataForm">
+            <div class="form-group">
+                <label for="codigo">Código:</label>
+                <input type="text" id="codigo" name="codigo">
+            </div>
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" name="nombre">
+            </div>
+            <div class="form-group">
+                <label for="apellido">Apellido:</label>
+                <input type="text" id="apellido" name="apellido">
+            </div>
+            <div class="form-group">
+                <label for="email">Correo Electrónico:</label>
+                <input type="email" id="email" name="email" required>
+                <div id="emailError" class="error"></div>
+            </div>
+            <div class="form-group">
+                <label for="dob">Fecha de Nacimiento:</label>
+                <input type="date" id="dob" name="dob" required>
+            </div>
+            <div class="form-group">
+                <input type="button" value="Agregar" onclick="agregarDatos()">
+                <input type="button" value="Actualizar" onclick="actualizarDatos()">
+                <input type="button" value="Eliminar" onclick="eliminarDatos()">
+                <input type="button" value="Limpiar" onclick="limpiarFormulario()">
+            </div>
+        </form>
+
+        <div id="tablaDatos"></div>
+
+        <div class="form-group">
+            <label for="buscarCodigo">Buscar Código:</label>
+            <input type="text" id="buscarCodigo">
+            <input type="button" value="Buscar" onclick="buscarCodigo()">
+            <div id="resultadoBusqueda"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="cargarArchivo">Cargar Excel:</label>
+            <input type="file" id="cargarArchivo" accept=".xlsx">
+            <input type="button" value="Cargar Datos" onclick="cargarDatosDesdeExcel()">
+        </div>
+
+        <input type="button" value="Exportar a Excel" onclick="exportToExcel()" id="exportButton" class="hidden">
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Proyecto Final</p>
+    </footer>
+
+    <script>
+        let datos = [];
+
+        function agregarDatos() {
+            const codigo = document.getElementById("codigo").value;
+            const nombre = document.getElementById("nombre").value;
+            const apellido = document.getElementById("apellido").value;
+            const email = document.getElementById("email").value;
+            const dob = document.getElementById("dob").value;
+
+            if (codigo && nombre && apellido && email && dob) {
+                if (!email.includes('@')) {
+                    document.getElementById("emailError").textContent = 'Por favor, ingrese un correo electrónico válido.';
+                    return;
+                } else {
+                    document.getElementById("emailError").textContent = '';
+                }
+
+                datos.push({ Código: codigo, Nombre: nombre, Apellido: apellido, Correo: email, "Fecha de Nacimiento": dob });
+                limpiarFormulario();
+                mostrarDatos();
+            }
+        }
+
+        function mostrarDatos() {
+            const tabla = document.getElementById("tablaDatos");
+            tabla.innerHTML = "";
+
+            if (datos.length > 0) {
+                const table = document.createElement("table");
+                const headerRow = table.insertRow(0);
+
+                for (const key in datos[0]) {
+                    const th = document.createElement("th");
+                    th.innerHTML = key;
+                    headerRow.appendChild(th);
+                }
+
+                for (let i = 0; i < datos.length; i++) {
+                    const row = table.insertRow(i + 1);
+                    for (const key in datos[i]) {
+                        const cell = row.insertCell();
+                        cell.innerHTML = datos[i][key];
+                    }
+                }
+
+                tabla.appendChild(table);
+                document.getElementById("exportButton").classList.remove("hidden");
+            } else {
+                document.getElementById("exportButton").classList.add("hidden");
+            }
+        }
+
+        function buscarCodigo() {
+            const codigoBuscado = document.getElementById("buscarCodigo").value;
+            const resultadoBusqueda = document.getElementById("resultadoBusqueda");
+            resultadoBusqueda.innerHTML = "";
+
+            if (codigoBuscado) {
+                const resultados = datos.filter((item) => item["Código"] === codigoBuscado);
+
+                if (resultados.length > 0) {
+                    const table = document.createElement("table");
+                    const headerRow = table.insertRow(0);
+
+                    for (const key in resultados[0]) {
+                        const th = document.createElement("th");
+                        th.innerHTML = key;
+                        headerRow.appendChild(th);
+                    }
+
+                    resultados.forEach((item, index) => {
+                        const row = table.insertRow(index + 1);
+                        for (const key in item) {
+                            const cell = row.insertCell();
+                            cell.innerHTML = item[key];
+                        }
+                    });
+
+                    resultadoBusqueda.appendChild(table);
+
+                    // Mostrar los datos encontrados en las cajas de texto del formulario
+                    document.getElementById("codigo").value = resultados[0]["Código"];
+                    document.getElementById("nombre").value = resultados[0]["Nombre"];
+                    document.getElementById("apellido").value = resultados[0]["Apellido"];
+                    document.getElementById("email").value = resultados[0]["Correo"];
+                    document.getElementById("dob").value = resultados[0]["Fecha de Nacimiento"];
+                } else {
+                    resultadoBusqueda.innerHTML = "Código no encontrado.";
+                }
+            }
+        }
+
+        function actualizarDatos() {
+            const codigo = document.getElementById("codigo").value;
+            const nombre = document.getElementById("nombre").value;
+            const apellido = document.getElementById("apellido").value;
+            const email = document.getElementById("email").value;
+            const dob = document.getElementById("dob").value;
+
+            if (codigo) {
+                const indice = datos.findIndex((item) => item["Código"] === codigo);
+
+                if (indice !== -1) {
+                    datos[indice] = { Código: codigo, Nombre: nombre, Apellido: apellido, Correo: email, "Fecha de Nacimiento": dob };
+                    mostrarDatos();
+                    limpiarFormulario();
+                }
+            }
+        }
+
+        function eliminarDatos() {
+            const codigo = document.getElementById("codigo").value;
+
+            if (codigo) {
+                const indice = datos.findIndex((item) => item["Código"] === codigo);
+
+                if (indice !== -1) {
+                    datos.splice(indice, 1);
+                    mostrarDatos();
+                    limpiarFormulario();
+                }
+            }
+        }
+
+        function limpiarFormulario() {
+            document.getElementById("codigo").value = "";
+            document.getElementById("nombre").value = "";
+            document.getElementById("apellido").value = "";
+            document.getElementById("email").value = "";
+            document.getElementById("dob").value = "";
+            document.getElementById("emailError").textContent = '';
+        }
+
+        function cargarDatosDesdeExcel() {
+            const fileInput = document.getElementById("cargarArchivo");
+            const file = fileInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function (e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: "array" });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    datos = jsonData;
+                    mostrarDatos();
+                };
+
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function exportToExcel() {
+            if (datos.length > 0) {
+                const worksheet = XLSX.utils.json_to_sheet(datos);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
+
+                XLSX.writeFile(workbook, "datos.xlsx");
+            }
+        }
+    </script>
+</body>
+</html>
